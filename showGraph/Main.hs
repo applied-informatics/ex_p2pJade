@@ -1,4 +1,5 @@
 import Control.Applicative
+import Control.Arrow
 import Database.HDBC
 import Database.HDBC.Sqlite3
 import Data.List
@@ -15,19 +16,19 @@ readDB = do
     c <- connectSqlite3 "../graph.db"
     map (listToTuple3 . map fromSql) <$> quickQuery c "SELECT test,nodes,edges FROM tests" []
 
-parseCSV :: (Read a) => String -> [[a]]
-parseCSV = map (map read . splitOn ",") . splitOn ";" 
+parseCSV :: String -> [[String]]
+parseCSV = map (splitOn ",") . splitOn ";" 
 
 
-genNodes ::  String -> [LNode Int]
-genNodes = map listToTuple2 . parseCSV
+genNodes ::  String -> [LNode String]
+genNodes = map ((read *** id) . listToTuple2) . parseCSV
 
 genEdges ::  String -> [LEdge Int]
-genEdges = map listToTuple3 . parseCSV
+genEdges = map (listToTuple3 . map read) . parseCSV
 
 --genGraph title nodes edges = graphviz title (mkGraph nodes edges) (1000, 2000) (100,100) Portrait 
 
 main = do 
     ds <- readDB 
 --    let vizReady =  genGraph ds
-    mapM preview $ map (\(t,ns,es) -> mkGraph (genNodes ns) (genEdges es) :: Gr Int Int) ds
+    mapM preview $ map (\(t,ns,es) -> mkGraph (genNodes ns) (genEdges es) :: Gr String Int) ds
